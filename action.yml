@@ -1,6 +1,6 @@
 name: "flake-update-action"
 description: "Update flake dependencies"
-author: "Phillip Cloud"
+author: "Phillip Cloud, Fred Clausen"
 inputs:
   dependency:
     required: true
@@ -49,7 +49,7 @@ runs:
       id: get_current_commit
       uses: cpcloud/flake-dep-info-action@v2.0.11
       with:
-        input: ${{ inputs.dependency }}
+        input: ${{ inputs.path }}/${{ inputs.dependency }}
 
     - name: Update ${{ inputs.dependency }}
       shell: bash
