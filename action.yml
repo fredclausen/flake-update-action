@@ -38,6 +38,10 @@ inputs:
     required: false
     description: "Whether to set the pull request to automatically merge on success. Requires that the automerge feature is enabled on GitHub."
     default: "false"
+  path:
+    required: false
+    description: "Path to the flake"
+    default: "./"
 runs:
   using: composite
   steps:
@@ -49,7 +53,7 @@ runs:
 
     - name: Update ${{ inputs.dependency }}
       shell: bash
-      run: nix flake lock --update-input ${{ inputs.dependency }}
+      run: nix flake lock --update-input ${{ inputs.dependency }} ${{ inputs.path }}
 
     - name: Get new commit
       id: get_new_commit
