@@ -41,7 +41,7 @@ inputs:
   path:
     required: false
     description: "Path to the flake"
-    default: "./flake.lock"
+    default: "./"
 runs:
   using: composite
   steps:
@@ -50,6 +50,7 @@ runs:
       uses: cpcloud/flake-dep-info-action@v2.0.11
       with:
         input: ${{ inputs.dependency }}
+        lockfile: ${{ inputs.path }}/flake.lock
 
     - name: Update ${{ inputs.dependency }}
       shell: bash
@@ -60,7 +61,7 @@ runs:
       uses: cpcloud/flake-dep-info-action@v2.0.11
       with:
         input: ${{ inputs.dependency }}
-        lockfile: ${{ inputs.path }}
+        lockfile: ${{ inputs.path }}/flake.lock
 
     - name: Get commit details for ${{ inputs.dependency }} changes
       uses: cpcloud/compare-commits-action@v5.0.37
