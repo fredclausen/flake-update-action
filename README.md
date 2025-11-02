@@ -16,7 +16,7 @@ jobs:
           - poetry2nix
     steps:
       - name: Update ${{ matrix.dependency }}
-        uses: cpcloud/flake-update-action@*
+        uses: fredclausen/flake-update-action@*
         with:
           dependency: ${{ matrix.dependency }}
           pull-request-token: ${{ secrets.ANOTHER_TOKEN }}
