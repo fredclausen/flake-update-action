@@ -47,7 +47,7 @@ runs:
   steps:
     - name: Get current commit
       id: get_current_commit
-      uses: cpcloud/flake-dep-info-action@v2.0.11
+      uses: cpcloud/flake-dep-info-action@v2.0.13
       with:
         input: ${{ inputs.dependency }}
         lockfile: ${{ inputs.path }}/flake.lock
@@ -58,7 +58,7 @@ runs:
 
     - name: Get new commit
       id: get_new_commit
-      uses: cpcloud/flake-dep-info-action@v2.0.11
+      uses: cpcloud/flake-dep-info-action@v2.0.13
       with:
         input: ${{ inputs.dependency }}
         lockfile: ${{ inputs.path }}/flake.lock
