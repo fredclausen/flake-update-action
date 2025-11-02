@@ -2,68 +2,70 @@
   description = "Update flakes using GitHub actions";
 
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
-
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
-
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        nixpkgs-stable.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
-    };
+    systems.url = "github:nix-systems/default";
+    git-hooks.url = "github:cachix/git-hooks.nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          overlays = [
-            (final: _: {
-              prettierTOML = final.writeShellApplication {
-                name = "prettier";
-                text = ''
-                  ${final.nodePackages.prettier}/bin/prettier \
-                  --plugin-search-dir "${final.nodePackages.prettier-plugin-toml}/lib" \
-                  "$@"
-                '';
-              };
-            })
-          ];
-          inherit system;
-        };
-        inherit (pkgs.lib) mkForce;
-      in
-      {
-        checks = {
-          pre-commit-check = pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              deadnix.enable = true;
-              statix.enable = true;
-              nixpkgs-fmt.enable = true;
+  outputs =
+    {
+      self,
+      systems,
+      nixpkgs,
+      ...
+    }@inputs:
+    let
+      forEachSystem = nixpkgs.lib.genAttrs (import systems);
+    in
+    {
+      # Run the hooks with `nix fmt`.
+      formatter = forEachSystem (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          inherit (self.checks.${system}.pre-commit-check) config;
+          inherit (config) package configFile;
+          script = ''
+            ${pkgs.lib.getExe package} run --all-files --config ${configFile}
+          '';
+        in
+        pkgs.writeShellScriptBin "pre-commit-run" script
+      );
 
-              prettier = {
-                enable = true;
-                entry = mkForce "${pkgs.prettierTOML}/bin/prettier --check";
-                types_or = [ "json" "toml" "yaml" ];
-              };
+      # Run the hooks in a sandbox with `nix flake check`.
+      # Read-only filesystem and no internet access.
+      checks = forEachSystem (system: {
+        pre-commit-check = inputs.git-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            nixfmt.enable = true;
+            deadnix.enable = true;
+            statix.enable = true;
+            prettier = {
+              enable = true;
+              types_or = [
+                "toml"
+                "json"
+                "yaml"
+                "markdown"
+              ];
             };
           };
         };
-
-        devShell = pkgs.mkShell {
-          name = "flake-update-action";
-          buildInputs = with pkgs; [
-            deadnix
-            git
-            nixpkgs-fmt
-            prettierTOML
-            statix
-          ];
-          inherit (self.checks.${system}.pre-commit-check) shellHook;
-        };
       });
+
+      # Enter a development shell with `nix develop`.
+      # The hooks will be installed automatically.
+      # Or run pre-commit manually with `nix develop -c pre-commit run --all-files`
+      devShells = forEachSystem (system: {
+        default =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+            inherit (self.checks.${system}.pre-commit-check) shellHook enabledPackages;
+          in
+          pkgs.mkShell {
+            inherit shellHook;
+            buildInputs = enabledPackages;
+          };
+      });
+    };
 }
